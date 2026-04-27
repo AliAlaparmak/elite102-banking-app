@@ -2,10 +2,10 @@ import mysql.connector
 
 def connect():
     return mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="Ilmfsm06",
-        database="BankingApplication"
+        host="",
+        user="",
+        password="",
+        database=""
     )
 
 def setup():
