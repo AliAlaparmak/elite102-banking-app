@@ -18,6 +18,15 @@ def setup():
             balance REAL NOT NULL
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            id         INTEGER PRIMARY KEY AUTO_INCREMENT,
+            account_id INTEGER NOT NULL,
+            type       TEXT NOT NULL,
+            amount     REAL NOT NULL,
+            timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
     print("Database ready!")
@@ -38,6 +47,7 @@ def deposit():
     conn = connect()
     cursor = conn.cursor()
     cursor.execute("UPDATE accounts SET balance = balance + %s WHERE id = %s", (amount, account_id))
+    cursor.execute("INSERT INTO transactions (account_id, type, amount) VALUES (%s, %s, %s)", (account_id, "deposit", amount))
     conn.commit()
     conn.close()
     print(f"${amount:.2f} deposited!")
@@ -55,6 +65,7 @@ def withdraw():
         print(f"Insufficient funds. Balance: ${row[0]:.2f}")
     else:
         cursor.execute("UPDATE accounts SET balance = balance - %s WHERE id = %s", (amount, account_id))
+        cursor.execute("INSERT INTO transactions (account_id, type, amount) VALUES (%s, %s, %s)", (account_id, "withdrawal", amount))
         conn.commit()
         print(f"${amount:.2f} withdrawn!")
     conn.close()
@@ -85,6 +96,21 @@ def list_accounts():
             print(f"  ID: {row[0]} | Name: {row[1]} | Balance: ${row[2]:.2f}")
         print("--------------------")
 
+def transaction_history():
+    account_id = int(input("Enter account ID: "))
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute("SELECT type, amount, timestamp FROM transactions WHERE account_id = %s ORDER BY timestamp DESC", (account_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    if len(rows) == 0:
+        print("No transactions found.")
+    else:
+        print("\n--- Transaction History ---")
+        for row in rows:
+            print(f"  {row[2]} | {row[0].upper()} | ${row[1]:.2f}")
+        print("---------------------------")
+
 def menu():
     setup()
     while True:
@@ -94,9 +120,10 @@ def menu():
         print("3. Withdraw money")
         print("4. Check balance")
         print("5. List all accounts")
-        print("6. Exit")
+        print("6. View transaction history")
+        print("7. Exit")
         print("=======================")
-        choice = input("Choose an option (1-6): ")
+        choice = input("Choose an option (1-7): ")
         if choice == "1":
             create_account()
         elif choice == "2":
@@ -108,10 +135,12 @@ def menu():
         elif choice == "5":
             list_accounts()
         elif choice == "6":
+            transaction_history()
+        elif choice == "7":
             print("Goodbye!")
             break
         else:
-            print("Please choose 1-6.")
+            print("Please choose 1-7.")
 
 if __name__ == "__main__":
     menu()
